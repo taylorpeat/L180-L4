@@ -1,0 +1,55 @@
+#! /usr/bin/env ruby
+
+require 'pg'
+
+def get_list_result
+  db = PG.connect(dbname: 'expenses')
+  return db.exec 'SELECT * FROM expenses;'
+end
+
+def help
+  puts <<~HELP
+    
+    An expense recording system
+
+    Commands:
+
+    add AMOUNT MEMO [DATE] - record a new expense
+    clear - delete all expenses
+    list - list all expenses
+    delete NUMBER - remove expense with id NUMBER
+    search QUERY - list expenses with a matching memo field
+    
+  HELP
+end 
+
+
+
+def print_line(line_elements)
+  print line_elements[0].rjust(4) + ' |'
+  print line_elements[3].rjust(11) + ' |'
+  print line_elements[1].rjust(7) + ' |'
+  print ' ' + line_elements[2] + "\n"
+end
+
+def list
+  result = get_list_result
+  puts ''
+  print_line(result.fields)
+  puts '-----+------------+--------+--------------'
+  result.values.each {|tuple| print_line(tuple)}
+  puts ''
+end
+
+def add
+
+end
+
+case ARGV[0]
+when 'list'
+  list()
+when 'add'
+  add()
+else
+  help()
+end
