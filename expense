@@ -2,54 +2,68 @@
 
 require 'pg'
 
-def get_list_result
-  db = PG.connect(dbname: 'expenses')
-  return db.exec 'SELECT * FROM expenses;'
+class CLI
+  def initialize
+    @application = ExpenseData.new
+  end
+
+  def run(ARGV)
+    case ARGV[0]
+    when 'list'
+      this.application.list
+    when 'add'
+      this.application.add(ARGV)
+    else
+      help
+    end
+  end
+
+  def help
+    puts <<~HELP
+      
+      An expense recording system
+
+      Commands:
+
+      add AMOUNT MEMO [DATE] - record a new expense
+      clear - delete all expenses
+      list - list all expenses
+      delete NUMBER - remove expense with id NUMBER
+      search QUERY - list expenses with a matching memo field
+      
+    HELP
+  end 
 end
 
-def help
-  puts <<~HELP
-    
-    An expense recording system
+class ExpenseData
+  def get_list_result
+    db = PG.connect(dbname: 'expenses')
+    return db.exec_params('SELECT * FROM expenses;')
+  end
 
-    Commands:
+  def add(input)
+    if (!(input[1] && input[2])) 
+      puts "You must provide an amount and memo."
+      return
+    end
+    sql = "INSERT INTO expenses (amount, memo) VALUES ($1, $2);"
+    db = PG.connect(dbname: 'expenses')
+    return db.exec_params(sql, [input[1], input[2]])
+  end
 
-    add AMOUNT MEMO [DATE] - record a new expense
-    clear - delete all expenses
-    list - list all expenses
-    delete NUMBER - remove expense with id NUMBER
-    search QUERY - list expenses with a matching memo field
-    
-  HELP
-end 
+  def print_line(line_elements)
+    print line_elements[0].rjust(4) + ' |'
+    print line_elements[3].rjust(11) + ' |'
+    print line_elements[1].rjust(7) + ' |'
+    print ' ' + line_elements[2] + "\n"
+  end
 
-
-
-def print_line(line_elements)
-  print line_elements[0].rjust(4) + ' |'
-  print line_elements[3].rjust(11) + ' |'
-  print line_elements[1].rjust(7) + ' |'
-  print ' ' + line_elements[2] + "\n"
-end
-
-def list
-  result = get_list_result
-  puts ''
-  print_line(result.fields)
-  puts '-----+------------+--------+--------------'
-  result.values.each {|tuple| print_line(tuple)}
-  puts ''
-end
-
-def add
-
-end
-
-case ARGV[0]
-when 'list'
-  list()
-when 'add'
-  add()
-else
-  help()
+  def list
+    result = get_list_result
+    puts ''
+    print_line(result.fields)
+    puts '-----+------------+--------+--------------'
+    result.values.each {|tuple| print_line(tuple)}
+    puts ''
+  end
 end
