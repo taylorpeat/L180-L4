@@ -7,12 +7,12 @@ class CLI
     @application = ExpenseData.new
   end
 
-  def run(ARGV)
-    case ARGV[0]
+  def run(input)
+    case input[0]
     when 'list'
-      this.application.list
+      @application.list
     when 'add'
-      this.application.add(ARGV)
+      @application.add(input)
     else
       help
     end
@@ -67,3 +67,5 @@ class ExpenseData
     puts ''
   end
 end
+
+CLI.new.run(ARGV)
