@@ -3,6 +3,7 @@
 require 'pg'
 require 'pry'
 require 'rb-readline'
+require 'io/console'
 
 class CLI
   def initialize
@@ -19,6 +20,10 @@ class CLI
       @application.search(input)
     when 'delete'
       @application.delete(input)
+    when 'clear'
+      puts "This will remove all expenses. Are you sure? (y/n)"
+      response = STDIN.getch
+      @application.clear if response.downcase == "y"
     else
       help
     end
@@ -42,6 +47,9 @@ class CLI
 end
 
 class ExpenseData
+  def initialize
+    @connection = PG.connect(dbname: 'expenses')
+  end
 
   def add(input)
     if (!(input[1] && input[2])) 
@@ -49,28 +57,40 @@ class ExpenseData
       return
     end
     sql = "INSERT INTO expenses (amount, memo) VALUES ($1, $2);"
-    db = PG.connect(dbname: 'expenses')
-    return db.exec_params(sql, [input[1], input[2]])
+    return @connection.exec_params(sql, [input[1], input[2]])
   end
 
   def search(input)
     sql = "SELECT * FROM expenses WHERE memo ~*($1)"
-    db = PG.connect(dbname: 'expenses')
-    result = db.exec_params(sql, [input[1]])
+    result = @connection.exec_params(sql, [input[1]])
+    print_result(result)
   end
 
   def delete(input)
     db = PG.connect(dbname: 'expenses')
     check_sql = "SELECT * FROM expenses WHERE id = $1"
-    check_result = db.exec_params(check_sql, [input[1]])
+    check_result = @connection.exec_params(check_sql, [input[1]])
+
     if check_result.values.length === 0
       puts "\nThere is no expense with the id '#{input[1]}'\n\n"
       return
     end
+
     sql = "DELETE FROM expenses WHERE id = $1"
-    result = db.exec_params(sql, [input[1]])
+    @connection.exec_params(sql, [input[1]])
     puts "\nThe following expense has been deleted:\n"
     print_result(check_result)
+  end
+
+  def clear
+
+    delete_all_expenses
+  end
+
+  def delete_all_expenses
+    sql = "DELETE FROM expenses"
+    @connection.exec(sql)
+    puts "All expenses have been deleted."
   end
 
   def list
@@ -87,8 +107,7 @@ class ExpenseData
   end
 
   def get_list_result
-    db = PG.connect(dbname: 'expenses')
-    return db.exec_params('SELECT * FROM expenses;')
+    return @connection.exec_params('SELECT * FROM expenses;')
   end
 
   def print_line(line_elements)
