@@ -13,6 +13,8 @@ class CLI
       @application.list
     when 'add'
       @application.add(input)
+    when 'search'
+      @application.search(input)
     else
       help
     end
@@ -36,10 +38,6 @@ class CLI
 end
 
 class ExpenseData
-  def get_list_result
-    db = PG.connect(dbname: 'expenses')
-    return db.exec_params('SELECT * FROM expenses;')
-  end
 
   def add(input)
     if (!(input[1] && input[2])) 
@@ -51,20 +49,36 @@ class ExpenseData
     return db.exec_params(sql, [input[1], input[2]])
   end
 
-  def print_line(line_elements)
-    print line_elements[0].rjust(4) + ' |'
-    print line_elements[3].rjust(11) + ' |'
-    print line_elements[1].rjust(7) + ' |'
-    print ' ' + line_elements[2] + "\n"
+  def search(input)
+    sql = "SELECT * FROM expenses WHERE memo ~*($1)"
+    db = PG.connect(dbname: 'expenses')
+    result = db.exec_params(sql, [input[1]])
+    print_result(result)
   end
 
   def list
     result = get_list_result
+    print_result(result)
+  end
+
+  def print_result(result)
     puts ''
     print_line(result.fields)
     puts '-----+------------+--------+--------------'
     result.values.each {|tuple| print_line(tuple)}
     puts ''
+  end
+
+  def get_list_result
+    db = PG.connect(dbname: 'expenses')
+    return db.exec_params('SELECT * FROM expenses;')
+  end
+
+  def print_line(line_elements)
+    print line_elements[0].rjust(4) + ' |'
+    print line_elements[3].rjust(11) + ' |'
+    print line_elements[1].rjust(7) + ' |'
+    print ' ' + line_elements[2] + "\n"
   end
 end
 
