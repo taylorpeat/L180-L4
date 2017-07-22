@@ -49,6 +49,25 @@ end
 class ExpenseData
   def initialize
     @connection = PG.connect(dbname: 'expenses')
+    if no_schema? then setup_schema end
+  end
+
+  def no_schema?
+    sql = "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'expenses'"
+    result = @connection.exec(sql)
+    return result.values[0][0] == '0'
+  end
+
+  def setup_schema
+    sql = <<~SQL
+      CREATE TABLE expenses(
+        id serial PRIMARY KEY,
+        amount NUMERIC(6,2) NOT NULL CHECK (amount > 0),
+        memo text NOT NULL,
+        created_on DATE NOT NULL DEFAULT NOW()
+      );
+    SQL
+    @connection.exec(sql)
   end
 
   def add(input)
