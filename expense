@@ -1,6 +1,8 @@
 #! /usr/bin/env ruby
 
 require 'pg'
+require 'pry'
+require 'rb-readline'
 
 class CLI
   def initialize
@@ -15,6 +17,8 @@ class CLI
       @application.add(input)
     when 'search'
       @application.search(input)
+    when 'delete'
+      @application.delete(input)
     else
       help
     end
@@ -53,7 +57,20 @@ class ExpenseData
     sql = "SELECT * FROM expenses WHERE memo ~*($1)"
     db = PG.connect(dbname: 'expenses')
     result = db.exec_params(sql, [input[1]])
-    print_result(result)
+  end
+
+  def delete(input)
+    db = PG.connect(dbname: 'expenses')
+    check_sql = "SELECT * FROM expenses WHERE id = $1"
+    check_result = db.exec_params(check_sql, [input[1]])
+    if check_result.values.length === 0
+      puts "\nThere is no expense with the id '#{input[1]}'\n\n"
+      return
+    end
+    sql = "DELETE FROM expenses WHERE id = $1"
+    result = db.exec_params(sql, [input[1]])
+    puts "\nThe following expense has been deleted:\n"
+    print_result(check_result)
   end
 
   def list
