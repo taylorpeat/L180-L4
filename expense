@@ -83,11 +83,6 @@ class ExpenseData
   end
 
   def clear
-
-    delete_all_expenses
-  end
-
-  def delete_all_expenses
     sql = "DELETE FROM expenses"
     @connection.exec(sql)
     puts "All expenses have been deleted."
@@ -95,7 +90,12 @@ class ExpenseData
 
   def list
     result = get_list_result
+    if result.values.length == 0
+      puts "There are no expenses."
+      return
+    end
     print_result(result)
+    print_total
   end
 
   def print_result(result)
@@ -103,6 +103,13 @@ class ExpenseData
     print_line(result.fields)
     puts '-----+------------+--------+--------------'
     result.values.each {|tuple| print_line(tuple)}
+  end
+
+  def print_total
+    puts '-' * 42
+    sql = "SELECT sum(amount) FROM expenses"
+    total = @connection.exec(sql).values[0][0]
+    puts 'Total' + total.rjust(21)
     puts ''
   end
 
